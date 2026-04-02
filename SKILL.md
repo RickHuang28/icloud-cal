@@ -8,6 +8,156 @@ metadata:
       bins: [python]
       env: [ICLOUD_EMAIL, ICLOUD_APP_PASSWORD]
     emoji: "📅"
+
+# ── Tool Registration (Stage 1: Metadata Only) ──────────────────
+# Each tool declares: entry point, parameters, safety flags.
+# OpenClaw currently reads name/description/metadata; tools: is
+# future-proof for Stage 2 (auto tool calling + param validation).
+
+tools:
+
+  - name: create_event
+    description: "Create a new calendar event with optional recurrence (RRULE), alarm, and location."
+    read_only: false
+    confirm: false
+    entry: "python scripts/add-event.py"
+    parameters:
+      - name: --summary
+        type: string
+        required: true
+        desc: "Event title (e.g., 和张总开会, 聚餐)"
+      - name: --start
+        type: string
+        required: true
+        desc: "Start time (YYYY-MM-DDTHH:mm:ss or YYYY-MM-DD for all-day)"
+      - name: --end
+        type: string
+        required: false
+        desc: "End time. Default: auto-infer from event type (meeting=1h, meal=2h)"
+      - name: --timezone
+        type: string
+        required: false
+        desc: "IANA timezone name. Default: Asia/Shanghai"
+      - name: --location
+        type: string
+        required: false
+        desc: "Event location"
+      - name: --description
+        type: string
+        required: false
+        desc: "Event notes / participants"
+      - name: --calendar
+        type: string
+        required: false
+        desc: "Calendar name (个人/工作). Default: auto-select by keyword"
+      - name: --alarm-minutes
+        type: integer
+        required: false
+        desc: "Alarm before event in minutes. Default: 15"
+      - name: --rrule
+        type: string
+        required: false
+        desc: "Recurrence rule (e.g., FREQ=WEEKLY;BYDAY=MO, FREQ=DAILY;COUNT=10)"
+      - name: --is-all-day
+        type: flag
+        required: false
+        desc: "All-day event (uses VALUE=DATE format to prevent timezone drift)"
+
+  - name: query_events
+    description: "Query events by date (today, tomorrow, week, nextweek, or specific date/range)."
+    read_only: true
+    confirm: false
+    entry: "python scripts/add-event.py --query"
+    parameters:
+      - name: --query
+        type: string
+        required: true
+        desc: "today | tomorrow | week | nextweek | YYYY-MM-DD | YYYY-MM-DD~YYYY-MM-DD"
+
+  - name: search_events
+    description: "Search events by keyword across all calendars, optionally within a date range."
+    read_only: true
+    confirm: false
+    entry: "python scripts/add-event.py --search"
+    parameters:
+      - name: --search
+        type: string
+        required: true
+        desc: "Keyword to fuzzy-match against title, location, and description"
+      - name: --search-range
+        type: string
+        required: false
+        desc: "Date range (YYYY-MM-DD~YYYY-MM-DD). Default: ±180 days"
+
+  - name: update_event
+    description: "Find an event by keyword and modify fields (time, title, location, calendar)."
+    read_only: false
+    confirm: true
+    confirm_hint: "This modifies an existing calendar event. Confirm before proceeding."
+    entry: "python scripts/add-event.py"
+    parameters:
+      - name: --update-find
+        type: string
+        required: true
+        desc: "Keyword to locate the event (fuzzy-match title, case-insensitive)"
+      - name: --update-set-summary
+        type: string
+        required: false
+        desc: "New event title"
+      - name: --update-set-start
+        type: string
+        required: false
+        desc: "New start time (YYYY-MM-DDTHH:mm:ss)"
+      - name: --update-set-end
+        type: string
+        required: false
+        desc: "New end time (YYYY-MM-DDTHH:mm:ss)"
+      - name: --update-set-location
+        type: string
+        required: false
+        desc: "New location. Use __CLEAR__ to remove location"
+      - name: --update-set-calendar
+        type: string
+        required: false
+        desc: "Move event to another calendar (personal/work)"
+      - name: --update-start
+        type: string
+        required: false
+        desc: "Search start date (YYYY-MM-DD). Narrows search scope"
+      - name: --update-end
+        type: string
+        required: false
+        desc: "Search end date (YYYY-MM-DD). Narrows search scope"
+
+  - name: delete_event
+    description: "Delete events matching a keyword. Supports dry-run preview."
+    read_only: false
+    confirm: true
+    confirm_hint: "This permanently deletes events. Run with DELETE_DRY_RUN=1 first to preview."
+    entry: "python scripts/add-event.py --delete"
+    parameters:
+      - name: --delete
+        type: string
+        required: true
+        desc: "Keyword to fuzzy-match against title and location (case-insensitive)"
+      - name: --delete-start
+        type: string
+        required: false
+        desc: "Search start date (YYYY-MM-DD). Limits scope"
+      - name: --delete-end
+        type: string
+        required: false
+        desc: "Search end date (YYYY-MM-DD). Limits scope"
+    safety_env_vars:
+      - CONFIRM_DELETE: "Set to 1 to allow actual deletion"
+      - DELETE_DRY_RUN: "Set to 1 to preview without deleting"
+
+  - name: list_calendars
+    description: "List all available iCloud calendars."
+    read_only: true
+    confirm: false
+    entry: "python scripts/add-event.py --list-calendars"
+    parameters: []
   author: RickHuang28
   license: MIT
   tags: [calendar, icloud, caldav, schedule, reminder, 日程, 日历]
